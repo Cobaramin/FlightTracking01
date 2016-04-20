@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #define MAXFLIGHT 5
+#define NUM 2
 #include <stdio.h>
 #include <conio.h>
 #include <string.h>
@@ -26,6 +27,7 @@ struct flight {
 };
 struct location {
 	int numHoop;
+	double distance[20];
 	char startnode[20][50];
 	char endnode[20][50];
 };
@@ -34,9 +36,11 @@ struct location {
 void getLogo();
 int firstInterface();
 void getTime(tm *timeInfo);
-void getRoutine(location *data);
-// void initFlight(flight *f, location *l);
-flight* getFlight(location *l);
+location* getRoutine(int numfile);
+flight* getFlight(int numfile, location *l);
+void settingMenu(flight *allf[]);
+double getAllDistance(flight *f);
+void loadingBar(double time, double maxTime);
 
 int main(void) {
 	/// Initialize Variable & Pointer
@@ -45,53 +49,85 @@ int main(void) {
 	int selectChoice;
 	int exitStatus = 0;
 	double seconds;
+	double maxTime[NUM];
+	double timer[NUM];
+	int percent;
 
-	time(&now);
-	seconds = difftime(now, mktime(timeInfo));
 	//------------ Routine Part
 
 	flight *allFlight[MAXFLIGHT];
-	//flight *f1 = (flight*)malloc(sizeof(flight));
-	location *l1 = (location*)malloc(sizeof(location));
+	location *allLocation[MAXFLIGHT];
 
-	getRoutine(l1);
-	
-	printf("\n%s-%s",l1->startnode[0],l1->endnode[l1->numHoop-1]);
-	printf("\n%d",l1->numHoop);
-	//initFlight(f1, l1);
-	allFlight[0] = getFlight(l1);
+	// Get All Locations form File
+	for (int i = 0; i < NUM; i++) {
+		allLocation[i] = getRoutine(i+1);
+	}
+	// Get All Flights form file
+	for (int i = 0; i < NUM; i++) {
+		allFlight[i] = getFlight(i+1, allLocation[i]);
+	}
 
-	printf("\nStart location is :%s", allFlight[0]->locate->startnode[0]);
-	printf("\nDesination is : %s", allFlight[0]->locate->endnode[allFlight[0]->locate->numHoop-1]);
-	printf("\nThe number of passenger is %d peopoles", allFlight[0]->num_people);
+	//printf("\nStart location is :%s", allFlight[0]->locate->startnode[0]);
+	//printf("\nDesination is : %s", allFlight[0]->locate->endnode[allFlight[0]->locate->numHoop-1]);
+	//printf("\nThe number of passenger is %d peopoles", allFlight[0]->num_people);
 
-	_getch();
 
 	//----------------- Interfacing
 
 	while (!exitStatus) {
 		system("cls"); // <--- Clear Screen
-		getTime(timeInfo); // <--- Show current time 
+		//getTime(timeInfo); // <--- Show current time 
 		getLogo();
 
 		printf("\n-----Fight Tracking ver 1.0-----\n");
 
 		selectChoice = firstInterface(); //  <--- Show select menu interface and return choice
-
+		//int dataIn;
 		switch (selectChoice)
 		{
 		case '1':
+			getTime(timeInfo);
+			//printf("Press 'q' to end process\n");
+			do {
+				system("cls");
+				time(&now);
+				seconds = difftime(now, mktime(timeInfo));
+
+				printf("Start Fligth tracking\n");
+				
+				for (int i = 0; i < NUM; i++) {
+					maxTime[i] = getAllDistance(allFlight[i]) / allFlight[i]->speed * 60;
+					timer[i] = (int)seconds % (int)maxTime[i];
+					printf("--------------------------------------------------------------------------------\n");
+					printf("\t%s ,%.2lfkm/hr\n",allFlight[i]->code,allFlight[i]->speed);
+					printf("\t%s - %s\n",allFlight[i]->locate->startnode[0], allFlight[i]->locate->startnode[allFlight[i]->locate->numHoop-1]);
+					loadingBar(timer[i], maxTime[i]);
+					percent = timer[i] / (int)maxTime[i] * 100;
+					printf("\t\t\t\t\t\t\t\t\t[%d%c]\n",percent,'%');
+					printf("--------------------------------------------------------------------------------\n");
+				}
+				
+				// Delay
+				for (int i = 0; i < 10000; i++) {
+					for (int j = 0; j < 10000; j++);
+				}
+				while ((int)seconds % 2) {
+					time(&now);
+					seconds = difftime(now, mktime(timeInfo));
+				}
+			} while ((int)seconds < 10000);
+
+			/*printf("\n%.2lf \n", getAllDistance(allFlight[1]) / allFlight[1]->speed * 60);*/
 			exitStatus = 1;
 			break;
 		case '2':
-			exitStatus = 1;
+			settingMenu(allFlight);
 			break;
 		default:
 			printf("\ntry agian!!\n");
 			break;
 		}
 	}
-
 
 	_getch();
 	return 0;
@@ -109,61 +145,62 @@ void getLogo(){
 	fclose(fp);
 }
 
-void getRoutine(location *data) {
+location* getRoutine(int numfile) {
+	location *l = (location*)malloc(sizeof(location));
 	FILE *fp;
 	char s1[50];
 	char s2[50];
-	int distance;
+	double distance;
 	int num = 0;
+	char str[20];
 
-	fp = fopen("location/l01.csv", "r");
+	sprintf(str,"location/l%.2d.csv",numfile);
 
-	while (fscanf(fp, "%s %s %d", s1, s2, &distance) != EOF) {
+	fp = fopen(str, "r");
+
+	if (fp == NULL)
+	{
+		perror(str);
+		_getch();
+		exit(EXIT_FAILURE);
+	}
+
+	while (fscanf(fp, "%s %s %lf", s1, s2, &distance) != EOF) {
 		num++;
-		printf("\n[%s-%s]-%d->%d", s1, s2, distance,num);
+		//printf("\n[%s-%s]-%d->%d", s1, s2, distance,num);
 		
-		strcpy(data->startnode[num-1],s1);
-		strcpy(data->endnode[num-1],s2);
-
-		data->numHoop = num;
+		strcpy(l->startnode[num-1],s1);
+		strcpy(l->endnode[num-1],s2);
+		l->distance[num-1] = distance;
+		l->numHoop = num;
 	}
 	fclose(fp);
+	return l;
 }
 
-//void initFlight(flight *f, location *l) {
-//	FILE *fp;
-//	char code[50];
-//	double speed;
-//	int numPeople;
-//	int num = 0;
-//
-//	fp = fopen("flight/f01.csv", "r");
-//
-//	while (fscanf(fp, "%s %lf %d", code, &speed, &numPeople) != EOF) {
-//		num++;
-//		printf("\n[%s]-%.2lf->%d", code, speed, numPeople);
-//		
-//		strcpy(f->code, code);
-//		f->locate = l;
-//		f->num_people = numPeople;
-//		f->speed = speed;
-//	}
-//	fclose(fp);
-//}
-
-flight* getFlight(location *l) {
+flight* getFlight(int numfile, location *l) {
 	flight *f = (flight*)malloc(sizeof(flight));
 	FILE *fp;
 	char code[50];
 	double speed;
 	int numPeople;
 	int num = 0;
+	char str[20];
 
-	fp = fopen("flight/f01.csv", "r");
+	sprintf(str, "flight/f%.2d.csv", numfile);
+
+	fp = fopen(str, "r");
+
+	if (fp == NULL)
+	{
+		perror(str);
+		_getch();
+		exit(EXIT_FAILURE);
+	}
 
 	while (fscanf(fp, "%s %lf %d", code, &speed, &numPeople) != EOF) {
 		num++;
-		printf("\n[%s]-%.2lf->%d", code, speed, numPeople);
+		//printf("\n[%s]-%.2lf->%d", code, speed, numPeople);
 
 		strcpy(f->code, code);
 		f->locate = l;
@@ -193,22 +230,75 @@ void getTime(tm *timeInfo) {
 
 	printf("\nCurrent local time and date: %s", asctime(info));
 
-	timeInfo->tm_hour = info->tm_hour;
-	timeInfo->tm_isdst = info->tm_isdst;
-	timeInfo->tm_mday = info->tm_mday;
-	timeInfo->tm_min = info->tm_min;
-	timeInfo->tm_mon = info->tm_mon;
-	timeInfo->tm_sec = info->tm_sec;
-	timeInfo->tm_wday = info->tm_wday;
-	timeInfo->tm_yday = info->tm_yday;
-	timeInfo->tm_year = info->tm_year;
+	//timeInfo->tm_hour = info->tm_hour;
+	//timeInfo->tm_isdst = info->tm_isdst;
+	//timeInfo->tm_mday = info->tm_mday;
+	//timeInfo->tm_min = info->tm_min;
+	//timeInfo->tm_mon = info->tm_mon;
+	//timeInfo->tm_sec = info->tm_sec;
+	//timeInfo->tm_wday = info->tm_wday;
+	//timeInfo->tm_yday = info->tm_yday;
+	//timeInfo->tm_year = info->tm_year;
+
+	*timeInfo = *info;
 }
 
-void settingMenu() {
-	printf("Select the Flight that you want to setting");
-	
+void settingMenu(flight *allf[]) {
+	int input;
+	char code[50];
+	double speed;
+	int num;
+	system("cls");
+	printf("Select the Flight that you want to setting\n");
+	for (int i = 0; i < NUM; i++) {
+		printf("\t%d : %s %s-%s\n",i+1,allf[i]->code,allf[i]->locate->startnode[0], allf[i]->locate->startnode[allf[i]->locate->numHoop-1]);
+	}
+	do {
+		input = _getch();
+	} while (input <= '0' || input > 48+NUM);
+
+	printf("Flight's Code [%s] : ",allf[input-49]->code);
+	scanf("%s",code);
+	printf("Flight's speed [%.2lf] : ", allf[input - 49]->speed);
+	scanf("%lf", &speed);
+	printf("Number of people [%d] : ", allf[input - 49]->num_people);
+	scanf("%d", &num);
+
+	// Update Structure Data
+	strcpy(allf[input - 49]->code, code);
+	allf[input - 49]->speed = speed;
+	allf[input - 49]->num_people = num;
+
+	// Write Changed Data to Files
+	FILE *fp;
+	char str[20];
+	sprintf(str,"flight/f%.2d.csv",input-48);
+
+	fp = fopen(str, "w+");
+
+	if (fp == NULL)
+	{
+		perror(str);
+		_getch();
+		exit(EXIT_FAILURE);
+	}
+	fprintf(fp, "%s %.2lf %d",code,speed,num);
+	fclose(fp);
+
 }
 
-void startCounter(flight f, tm timer) {
+double getAllDistance(flight *f) {
+	double totalDistance = 0;
+	for (int i = 0; i < f->locate->numHoop; i++) {
+		totalDistance += f->locate->distance[i];
+	}
+	return totalDistance;
+}
 
+void loadingBar(double time,double maxTime) {
+	int percent = (int)(time * 80 / maxTime);
+	for (int i = 0; i < percent; i++) {
+			printf("%c",176);
+	}
+	printf("\n");
 }
