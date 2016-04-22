@@ -17,7 +17,6 @@ struct flight {
 	location *locate;
 	char code[10];
 	double speed;
-	int num_people;
 };
 struct location {
 	int numHoop;
@@ -189,7 +188,6 @@ flight* getFlight(int numfile, location *l) {
 	FILE *fp;
 	char code[50];
 	double speed;
-	int numPeople;
 	int num = 0;
 	char str[20];
 
@@ -204,12 +202,11 @@ flight* getFlight(int numfile, location *l) {
 		exit(EXIT_FAILURE);
 	}
 
-	while (fscanf(fp, "%s %lf %d", code, &speed, &numPeople) != EOF) {
+	while (fscanf(fp, "%s %lf %d", code, &speed) != EOF) {
 		num++;
 
 		strcpy(f->code, code);
 		f->locate = l;
-		f->num_people = numPeople;
 		f->speed = speed;
 	}
 	fclose(fp);
@@ -243,11 +240,10 @@ void settingMenu(flight *allf[]) {
 	int input;
 	char code[50];
 	double speed;
-	int num;
 	system("cls");
 	printf("Select the Flight that you want to setting\n");
 	for (int i = 0; i < NUM; i++) {
-		printf("\t%d : %s %s-%s\n", i + 1, allf[i]->code, allf[i]->locate->startnode[0], allf[i]->locate->startnode[allf[i]->locate->numHoop - 1]);
+		printf("\t%d : %s %s-%s\n", i + 1, allf[i]->code, allf[i]->locate->startnode[0], allf[i]->locate->endnode[allf[i]->locate->numHoop - 1]);
 	}
 	do {
 		input = _getch();
@@ -257,13 +253,10 @@ void settingMenu(flight *allf[]) {
 	scanf("%s", code);
 	printf("Flight's speed [%.2lf] : ", allf[input - 49]->speed);
 	scanf("%lf", &speed);
-	printf("Number of people [%d] : ", allf[input - 49]->num_people);
-	scanf("%d", &num);
 
 	// Update Structure Data
 	strcpy(allf[input - 49]->code, code);
 	allf[input - 49]->speed = speed;
-	allf[input - 49]->num_people = num;
 
 	// Write Changed Data to Files
 	FILE *fp;
@@ -278,7 +271,7 @@ void settingMenu(flight *allf[]) {
 		_getch();
 		exit(EXIT_FAILURE);
 	}
-	fprintf(fp, "%s %.2lf %d", code, speed, num);
+	fprintf(fp, "%s %.2lf %d", code, speed);
 	fclose(fp);
 
 	printf("Update Completed.....\n");
