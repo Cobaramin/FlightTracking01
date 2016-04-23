@@ -1,6 +1,6 @@
 #define _CRT_SECURE_NO_DEPRECATE
-#define MAXFLIGHT 5
-#define NUM 2
+#define MAXFLIGHT 50
+#define NUM 4
 #include <stdio.h>
 #include <conio.h>
 #include <string.h>
@@ -36,6 +36,10 @@ void settingMenu(flight *allf[]);
 double getAllDistance(flight *f);
 void loadingBar(double time, double maxTime);
 void loadingLocation(double time, double maxTime, flight *f);
+void selectFlight(flight **allf, int status[]);
+void printSelector(flight **allf, int status[]);
+int getHitTime(int status[]);
+void clearHitTime(int status[]);
 
 int main(void) {
 	/// Initialize Variable & Pointer
@@ -46,7 +50,9 @@ int main(void) {
 	double seconds;
 	double maxTime[NUM];
 	double timer[NUM];
+	int status[NUM] = { 0 };
 	int percent;
+	int temp;
 	double totalDistance;
 	char c;
 
@@ -82,6 +88,7 @@ int main(void) {
 		{
 		case '1':
 			getTime(timeInfo);
+			selectFlight(allFlight, status);
 			do {
 				system("cls");
 				time(&now);
@@ -91,21 +98,23 @@ int main(void) {
 				printf("(Presss Any key on your keyboard to terminate this process)\n");
 
 				for (int i = 0; i < NUM; i++) {
-					totalDistance = getAllDistance(allFlight[i]);
-					maxTime[i] = totalDistance / allFlight[i]->speed * 60;
-					timer[i] = (int)seconds % ((int)maxTime[i] + 1);
-					for (int j = 0; j < 80; j++) {
-						printf("%c",209);
+					if (status[i] == 1) {
+						totalDistance = getAllDistance(allFlight[i]);
+						maxTime[i] = totalDistance / allFlight[i]->speed * 60;
+						timer[i] = (int)seconds % ((int)maxTime[i] + 1);
+						for (int j = 0; j < 80; j++) {
+							printf("%c", 209);
+						}
+						printf("\n\t%s ,%.2lfkm/hr ,%dkm\n", allFlight[i]->code, allFlight[i]->speed, (int)totalDistance);
+						printf("\t%s - %s\n", allFlight[i]->locate->startnode[0], allFlight[i]->locate->endnode[allFlight[i]->locate->numHoop - 1]);
+						loadingBar(timer[i], maxTime[i]);
+						loadingLocation(timer[i], maxTime[i], allFlight[i]);
+						percent = timer[i] / (int)maxTime[i] * 100;
+						printf("Time remaining %.2lfmins\t\t\t\t\t\t[%d%c]\n", maxTime[i] - timer[i], percent, '%');
+						for (int j = 0; j < 80; j++) {
+							printf("%c", 207);
+						}printf("\n");
 					}
-					printf("\n\t%s ,%.2lfkm/hr ,%dkm\n", allFlight[i]->code, allFlight[i]->speed, (int)totalDistance);
-					printf("\t%s - %s\n", allFlight[i]->locate->startnode[0], allFlight[i]->locate->endnode[allFlight[i]->locate->numHoop - 1]);
-					loadingBar(timer[i], maxTime[i]);
-					loadingLocation(timer[i], maxTime[i], allFlight[i]);
-					percent = timer[i] / (int)maxTime[i] * 100;
-					printf("Time remaining %.2lfmins\t\t\t\t\t\t[%d%c]\n",maxTime[i]-timer[i], percent, '%');
-					for (int j = 0; j < 80; j++) {
-						printf("%c", 207);
-					}printf("\n");
 				}
 
 				//// Delay
@@ -113,6 +122,7 @@ int main(void) {
 					for (int j = 0; j < 25000; j++);
 				}
 			} while (!_kbhit());
+			clearHitTime(status);
 
 			break;
 		case '2':
@@ -313,4 +323,55 @@ void loadingLocation(double time, double maxTime, flight *f) {
 	}
 	printf("%s", str);
 	printf("\n");
+}
+
+void selectFlight(flight **allf, int status[]) {
+	char input;
+	int hitTime = 0;
+	do {
+		system("cls");
+		printf("Select three Flights that you want to tracking\n");
+
+		printSelector(allf, status);
+		do {
+			input = _getch();
+		} while (input <= '0' || input > 48 + NUM);
+		status[input - 49] = 1;
+		hitTime = getHitTime(status);
+	} while (hitTime != 3);
+}
+
+void printSelector(flight **allf ,int status[]) {
+	char c;
+	int num = 0;
+	for (int i = 0; i < NUM; i++) {
+		if (status[i] == 1) {
+			c = 254;
+		} else {
+			c = ' ';
+		}
+		
+		if (i <= 9) {
+			printf("   [%c] ", c);
+			printf("%c : %s %s-%s\n", i + 49, allf[i]->code, allf[i]->locate->startnode[0], allf[i]->locate->endnode[allf[i]->locate->numHoop - 1]);
+		} else {
+			printf("   [%c] ", c);
+			printf("%c : %s %s-%s\n", i + 49 + 39 , allf[i]->code, allf[i]->locate->startnode[0], allf[i]->locate->endnode[allf[i]->locate->numHoop - 1]);
+		}
+	}
+}
+
+int getHitTime(int status[]) {
+	int num = 0;
+	for (int i = 0; i < NUM; i++) {
+		if (status[i] == 1)
+			num++;
+	}
+	return num;
+}
+
+void clearHitTime(int status[]) {
+	for (int i = 0; i < NUM; i++) {
+		status[i] = 0;
+	}
 }
