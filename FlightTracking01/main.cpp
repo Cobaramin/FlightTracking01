@@ -52,7 +52,6 @@ int main(void) {
 	double timer[NUM];
 	int status[NUM] = { 0 };
 	int percent;
-	int temp;
 	double totalDistance;
 	char c;
 
@@ -109,7 +108,7 @@ int main(void) {
 						printf("\t%s - %s\n", allFlight[i]->locate->startnode[0], allFlight[i]->locate->endnode[allFlight[i]->locate->numHoop - 1]);
 						loadingBar(timer[i], maxTime[i]);
 						loadingLocation(timer[i], maxTime[i], allFlight[i]);
-						percent = timer[i] / (int)maxTime[i] * 100;
+						percent = (int)( timer[i] / (int)maxTime[i] * 100);
 						printf("Time remaining %.2lfmins\t\t\t\t\t\t[%d%c]\n", maxTime[i] - timer[i], percent, '%');
 						for (int j = 0; j < 80; j++) {
 							printf("%c", 207);
@@ -212,7 +211,7 @@ flight* getFlight(int numfile, location *l) {
 		exit(EXIT_FAILURE);
 	}
 
-	while (fscanf(fp, "%s %lf %d", code, &speed) != EOF) {
+	while (fscanf(fp, "%s %lf", code, &speed) != EOF) {
 		num++;
 
 		strcpy(f->code, code);
@@ -281,7 +280,7 @@ void settingMenu(flight *allf[]) {
 		_getch();
 		exit(EXIT_FAILURE);
 	}
-	fprintf(fp, "%s %.2lf %d", code, speed);
+	fprintf(fp, "%s %.2lf", code, speed);
 	fclose(fp);
 
 	printf("Update Completed.....\n");
